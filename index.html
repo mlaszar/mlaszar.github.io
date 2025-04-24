@@ -1,5 +1,4 @@
 <h1>San Franciscoi repuloter utas  hulyeseg  forgalma</h1>
-
 import streamlit as st
 import pandas as pd
 import json
@@ -9,7 +8,6 @@ st.set_page_config(page_title="San Francisco Utasstatisztikák", layout="wide")
 
 st.title("✈️ San Francisco - Repülőjárat utasstatisztikák")
 
-# JSON betöltése
 @st.cache_data
 def load_data():
     with open("San_Francisco.json", "r", encoding="utf-8") as f:
@@ -20,23 +18,23 @@ def load_data():
 
 df = load_data()
 
-# 📅 Dátum kiválasztása
+# Dátumválasztó
 all_dates = sorted(df["Activity Period Start Date"].dt.strftime("%Y-%m-%d").unique())
-selected_date = st.selectbox("📅 Válassz hónapot", all_dates)
+selected_date = st.selectbox("📅 Válassz dátumot", all_dates)
 selected_date_parsed = pd.to_datetime(selected_date)
 filtered_df = df[df["Activity Period Start Date"] == selected_date_parsed]
 
-# 🌍 Régiónkénti eloszlás - kördiagram
-st.subheader("🌍 Régiónkénti utasszám eloszlás")
+# Kördiagram régiók szerint
+st.subheader("🌍 Régiónkénti utaseloszlás")
 if not filtered_df.empty:
     region_sum = filtered_df.groupby("GEO Region")["Passenger Count"].sum().reset_index()
     fig1 = px.pie(region_sum, names="GEO Region", values="Passenger Count", hole=0.4)
     st.plotly_chart(fig1, use_container_width=True)
 else:
-    st.warning("Nincs adat a kiválasztott dátumra.")
+    st.warning("Nincs adat erre a dátumra.")
 
-# ✈️ Top 10 légitársaság - oszlopdiagram
-st.subheader("✈️ Top 10 légitársaság (utasok száma)")
+# Top 10 légitársaság
+st.subheader("✈️ Top 10 légitársaság")
 if not filtered_df.empty:
     top_airlines = (
         filtered_df.groupby("Operating Airline")["Passenger Count"]
@@ -45,36 +43,23 @@ if not filtered_df.empty:
         .head(10)
         .reset_index()
     )
-    fig2 = px.bar(
-        top_airlines,
-        x="Operating Airline",
-        y="Passenger Count",
-        color="Operating Airline",
-        text="Passenger Count"
-    )
+    fig2 = px.bar(top_airlines, x="Operating Airline", y="Passenger Count", color="Operating Airline")
     st.plotly_chart(fig2, use_container_width=True)
 else:
-    st.info("Nem található elég adat a légitársaságokhoz ezen a dátumon.")
+    st.info("Nincs elérhető adat légitársaságokra.")
 
-# 📈 Régiónkénti trend - vonaldiagram
-st.subheader("📈 Régiónkénti trend (összes hónapra)")
+# Idősoros trend régiók szerint
+st.subheader("📈 Régiónkénti trend")
 time_series = (
     df.groupby(["Activity Period Start Date", "GEO Region"])["Passenger Count"]
     .sum()
     .reset_index()
 )
-fig3 = px.line(
-    time_series,
-    x="Activity Period Start Date",
-    y="Passenger Count",
-    color="GEO Region",
-    markers=True
-)
+fig3 = px.line(time_series, x="Activity Period Start Date", y="Passenger Count", color="GEO Region", markers=True)
 st.plotly_chart(fig3, use_container_width=True)
 
-# 📋 Részletes táblázat
-st.subheader("📋 Részletes adatok a kiválasztott hónapban")
+# Táblázat
+st.subheader("📋 Részletes adatok")
 st.dataframe(filtered_df.reset_index(drop=True))
-
 
   
