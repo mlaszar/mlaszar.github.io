@@ -1,1 +1,116 @@
 # mlaszar.github.io
+
+<h1>San Franciscoi repuloter utas forgalma</h1>
+
+import json
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# JSON beolvasása
+with open(r"C:\\Users\\Vand golf 4\\Downloads\\data\\San_Francisco.json", "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+# Átalakítás DataFrame-re
+df = pd.DataFrame(data)
+
+# Dátum átalakítása időformátumra
+df["Activity Period Start Date"] = pd.to_datetime(df["Activity Period Start Date"])
+
+# Szűrés 1999. júliusra
+july_data = df[df["Activity Period Start Date"] == "1999-07-01"]
+
+# Utasszám összegzése régió szerint
+grouped = july_data.groupby("GEO Region")["Passenger Count"].sum().sort_values(ascending=False)
+
+# Diagram kirajzolása
+plt.figure(figsize=(10, 6))
+grouped.plot(kind="bar", color="skyblue")
+plt.title("Utasok száma régiónként - 1999. július")
+plt.xlabel("Régió")
+plt.ylabel("Utasok száma")
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+import streamlit as st
+import pandas as pd
+import json
+import plotly.express as px
+
+st.set_page_config(page_title="San Francisco Utasstatisztikák", layout="wide")
+
+st.title("✈️ San Francisco - Repülőjárat utasstatisztikák")
+
+# JSON betöltés
+with open("San_Francisco.json", "r") as f:
+    data = json.load(f)
+
+df = pd.DataFrame(data)
+df["Activity Period Start Date"] = pd.to_datetime(df["Activity Period Start Date"])
+
+# Dátum kiválasztása
+all_dates = sorted(df["Activity Period Start Date"].dt.strftime("%Y-%m-%d").unique())
+selected_date = st.selectbox("📅 Válassz hónapot", all_dates)
+selected_date_parsed = pd.to_datetime(selected_date)
+filtered_df = df[df["Activity Period Start Date"] == selected_date_parsed]
+
+# Régiók eloszlása - kördiagram
+st.subheader("🌍 Régiónkénti utasszám eloszlás")
+region_sum = filtered_df.groupby("GEO Region")["Passenger Count"].sum().reset_index()
+fig1 = px.pie(region_sum, names="GEO Region", values="Passenger Count", hole=0.4)
+st.plotly_chart(fig1, use_container_width=True)
+
+# Top 10 légitársaság - oszlopdiagram
+st.subheader("✈️ Top 10 légitársaság (utasok száma)")
+top_airlines = (
+    filtered_df.groupby("Operating Airline")["Passenger Count"]
+    .sum()
+    .sort_values(ascending=False)
+    .head(10)
+    .reset_index()
+)
+fig2 = px.bar(top_airlines, x="Operating Airline", y="Passenger Count", color="Operating Airline", text="Passenger Count")
+st.plotly_chart(fig2, use_container_width=True)
+
+# Régiónkénti trend (minden hónap)
+st.subheader("📈 Régiónkénti trend (összes hónapra)")
+time_series = df.groupby(["Activity Period Start Date", "GEO Region"])["Passenger Count"].sum().reset_index()
+fig3 = px.line(time_series, x="Activity Period Start Date", y="Passenger Count", color="GEO Region", markers=True)
+st.plotly_chart(fig3, use_container_width=True)
+
+# Táblázat
+st.subheader("📋 Részletes adatok a kiválasztott hónapban")
+st.dataframe(filtered_df.reset_index(drop=True))
+
+În joi, 24 apr. 2025 la 21:34, Rozalia Foris <forisrozalia884@gmail.com> a scris:
+import json
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# JSON beolvasása
+with open("San_Francisco.json", "r") as f:
+    data = json.load(f)
+
+# Átalakítás DataFrame-re
+df = pd.DataFrame(data)
+
+# Dátum átalakítása időformátumra
+df["Activity Period Start Date"] = pd.to_datetime(df["Activity Period Start Date"])
+
+# Szűrés 1999. júliusra
+july_data = df[df["Activity Period Start Date"] == "1999-07-01"]
+
+# Utasszám összegzése régió szerint
+grouped = july_data.groupby("GEO Region")["Passenger Count"].sum().sort_values(ascending=False)
+
+# Diagram kirajzolása
+plt.figure(figsize=(10, 6))
+grouped.plot(kind="bar", color="skyblue")
+plt.title("Utasok száma régiónként - 1999. július")
+plt.xlabel("Régió")
+plt.ylabel("Utasok száma")
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+
