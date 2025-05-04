@@ -39,81 +39,114 @@
     </script>
 </body>
 </html>
-
 <!DOCTYPE html>
 <html lang="hu">
 <head>
   <meta charset="UTF-8">
-  <title>Belföldi Utasforgalom – Vonaldiagram</title>
+  <title>San Francisco Belföldi Utasforgalom</title>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-  <h2 style="text-align:center;">Havi belföldi utasforgalom – Évek szerint (US desztináció)</h2>
+  <h2 style="text-align:center;">Belföldi utasforgalom (US desztináció) – 1999–2024</h2>
   <div id="chart" style="width:100%;height:600px;"></div>
 
   <script>
-    const data = [
-      // Helyezd ide a Plotly trace-eket (1 per hónap)
-    ];
-
-    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    const colors = {
+    const monthColors = {
       'January': '#1f77b4', 'February': '#17becf', 'March': '#2ca02c',
       'April': '#bcbd22', 'May': '#ffbb78', 'June': '#ff7f0e',
       'July': '#d62728', 'August': '#e377c2', 'September': '#9467bd',
       'October': '#8c564b', 'November': '#7f7f7f', 'December': '#1f77b4'
     };
 
-    const years = [...Array(2025 - 1999).keys()].map(y => y + 1999);  // 1999–2024
+    const monthOrder = ['January','February','March','April','May','June',
+                        'July','August','September','October','November','December'];
 
-    // Fake adatok (cseréld le a saját JSON aggregált adataidra!)
-    for (const month of months) {
-      data.push({
-        x: years,
-        y: years.map(y => Math.floor(Math.random() * 100000) + 10000),
-        mode: "lines+markers",
-        name: month,
-        line: { width: 1.5, color: colors[month] },
-        visible: true
+    fetch('https://raw.githubusercontent.com/mlaszar/mlaszar.github.io/main/San_Francisco.json')
+      .then(response => response.json())
+      .then(data => {
+        const filtered = data.filter(d => d.Destination === 'US' && d['Activity Period Start Date']);
+
+        filtered.forEach(d => {
+          const parts = d['Activity Period Start Date'].split('/');
+          const month = parseInt(parts[0]);
+          const yearRaw = parts[2];
+          const year = yearRaw.length === 2 ? 1900 + parseInt(yearRaw) : parseInt(yearRaw);
+          d.Year = year;
+          d.Month = new Date(year, month - 1).toLocaleString('en-US', { month: 'long' });
+          d['Passenger Count'] = parseInt(d['Passenger Count'].replace(/,/g, ''), 10);
+        });
+
+        const monthlyData = {};
+
+        filtered.forEach(d => {
+          if (d.Year >= 1999 && d.Year <= 2024) {
+            const key = `${d.Year}-${d.Month}`;
+            if (!monthlyData[key]) {
+              monthlyData[key] = { Year: d.Year, Month: d.Month, Count: 0 };
+            }
+            monthlyData[key].Count += d['Passenger Count'];
+          }
+        });
+
+        const traces = monthOrder.map(month => {
+          const x = [];
+          const y = [];
+          for (let year = 1999; year <= 2024; year++) {
+            const key = `${year}-${month}`;
+            x.push(year);
+            y.push(monthlyData[key] ? monthlyData[key].Count : 0);
+          }
+          return {
+            x,
+            y,
+            mode: 'lines+markers',
+            name: month,
+            line: { width: 1.5, color: monthColors[month] || '#000000' }
+          };
+        });
+
+        const buttons = monthOrder.map((month, idx) => ({
+          label: month,
+          method: 'update',
+          args: [
+            { visible: monthOrder.map((_, i) => i === idx) },
+            { title: `${month} – Éves utasforgalom` }
+          ]
+        }));
+
+        buttons.unshift({
+          label: 'Összes hónap',
+          method: 'update',
+          args: [
+            { visible: Array(12).fill(true) },
+            { title: 'Havi utasforgalom – Évek szerint' }
+          ]
+        });
+
+        const layout = {
+          title: 'Havi utasforgalom – Évek szerint',
+          xaxis: { title: 'Év', dtick: 1 },
+          yaxis: { title: 'Utasok száma' },
+          updatemenus: [{
+            buttons,
+            direction: 'down',
+            showactive: true,
+            x: 1.1,
+            y: 1.15,
+            xanchor: 'right',
+            yanchor: 'top'
+          }]
+        };
+
+        Plotly.newPlot('chart', traces, layout);
+      })
+      .catch(error => {
+        console.error("Nem sikerült betölteni az adatokat:", error);
+        document.getElementById('chart').innerText = 'Hiba történt az adatok betöltésekor.';
       });
-    }
-
-    const buttons = months.map((m, i) => ({
-      label: m,
-      method: "update",
-      args: [
-        { visible: months.map((_, j) => j === i) },
-        { title: m + " – Éves utasforgalom" }
-      ]
-    }));
-
-    buttons.unshift({
-      label: "Összes hónap",
-      method: "update",
-      args: [
-        { visible: Array(12).fill(true) },
-        { title: "Havi utasforgalom – Évek szerint" }
-      ]
-    });
-
-    const layout = {
-      title: "Havi utasforgalom – Évek szerint",
-      xaxis: { title: "Év" },
-      yaxis: { title: "Utasok száma" },
-      updatemenus: [{
-        buttons: buttons,
-        direction: "down",
-        showactive: true,
-        x: 1.1,
-        y: 1.15,
-        xanchor: "right",
-        yanchor: "top"
-      }]
-    };
-
-    Plotly.newPlot("chart", data, layout);
   </script>
 </body>
 </html>
+
 
 
