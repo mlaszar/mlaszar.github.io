@@ -154,6 +154,106 @@
   </script>
 </body>
 </html>
+
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <title>San Francisco – Legforgalmasabb hónapok trendje</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+  <h2>Legforgalmasabb hónapok évenként (San Francisco)</h2>
+  <div id="chart" style="width:90%;max-width:1000px;height:600px;margin:auto;"></div>
+
+  <script>
+    const url = "https://raw.githubusercontent.com/mlaszar/mlaszar.github.io/main/San_Francisco.json";
+
+    const monthNames = [
+      "Január", "Február", "Március", "Április", "Május", "Június",
+      "Július", "Augusztus", "Szeptember", "Október", "November", "December"
+    ];
+
+    const colorMap = {
+      1: 'rgb(100,100,255)',
+      2: 'rgb(100,100,255)',
+      3: 'rgb(0,255,255)',
+      4: 'rgb(0,255,255)',
+      5: 'rgb(0,255,0)',
+      6: 'rgb(255,255,0)',     // Június - sárga
+      7: 'rgb(255,165,0)',     // Július - narancs
+      8: 'rgb(255,0,0)',       // Augusztus - piros
+      9: 'rgb(255,255,0)',
+      10: 'rgb(255,255,0)',
+      11: 'rgb(255,165,0)',
+      12: 'rgb(0,0,255)'
+    };
+
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        // Dátum feldolgozás, utasszám átalakítás
+        data.forEach(d => {
+          const parts = d["Activity Period Start Date"].split('/');
+          d.year = 2000 + parseInt(parts[2], 10);
+          if (d.year > new Date().getFullYear()) d.year -= 100;  // 1999 korrekció
+          d.month = parseInt(parts[0], 10);
+          d.passengers = parseInt(d["Passenger Count"].replace(/,/g, ''), 10);
+        });
+
+        // Szűrés 2025 kizárásával
+        data = data.filter(d => d.year !== 2025);
+
+        // Összegzés: év-hónap szinten utasszámok
+        const totals = {};
+        data.forEach(d => {
+          const key = `${d.year}-${d.month}`;
+          if (!totals[key]) totals[key] = 0;
+          totals[key] += d.passengers;
+        });
+
+        // Legforgalmasabb hónap keresése évenként
+        const maxPerYear = {};
+        for (const key in totals) {
+          const [year, month] = key.split('-').map(Number);
+          if (!maxPerYear[year] || totals[key] > maxPerYear[year].passengers) {
+            maxPerYear[year] = { month, passengers: totals[key] };
+          }
+        }
+
+        // Chart adatok
+        const years = Object.keys(maxPerYear).sort((a, b) => a - b);
+        const passengerCounts = years.map(y => maxPerYear[y].passengers);
+        const labels = years.map(y => monthNames[maxPerYear[y].month - 1]);
+        const colors = years.map(y => colorMap[maxPerYear[y].month]);
+
+        // Diagram rajzolás
+        const trace = {
+          x: years.map(String),
+          y: passengerCounts,
+          text: labels,
+          type: 'bar',
+          marker: {
+            color: colors
+          },
+          hovertemplate: "Év: %{x}<br>Utasszám: %{y}<br>Hónap: %{text}<extra></extra>"
+        };
+
+        const layout = {
+          title: 'Legforgalmasabb hónap évenként (induló járatok)',
+          xaxis: { title: 'Év' },
+          yaxis: { title: 'Utasszám' },
+        };
+
+        Plotly.newPlot('chart', [trace], layout);
+      })
+      .catch(error => {
+        document.getElementById('chart').innerText = 'Hiba a JSON betöltésekor!';
+        console.error("Hiba:", error);
+      });
+  </script>
+</body>
+</html>
 <!DOCTYPE html>
 <html lang="hu">
 <head>
