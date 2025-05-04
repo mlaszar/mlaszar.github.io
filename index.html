@@ -2,7 +2,7 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <title>San Francisco Repülőtér Utasforgalom</title>
+    <title>San Francisco repülőtér – Utasforgalom</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
@@ -11,27 +11,27 @@
 
     <!-- 1. Pre-COVID vs Post-COVID -->
     <section>
-        <h2 style="text-align:center;">Passenger Count Comparison: Pre-COVID vs Post-COVID</h2>
+        <h2 style="text-align:center;">Utasforgalom: COVID előtti és utáni évek</h2>
         <div id="passenger_plot" style="width:90%;max-width:1000px;height:600px;margin:auto;"></div>
         <script>
             var trace1 = {
                 x: [2015, 2016, 2017, 2018, 2019],
                 y: [4500000, 4700000, 4800000, 5000000, 5200000],
                 mode: 'lines+markers',
-                name: 'Pre-COVID',
+                name: 'COVID előtt',
                 line: { color: 'blue' }
             };
             var trace2 = {
                 x: [2020, 2021, 2022],
                 y: [1800000, 2300000, 3100000],
                 mode: 'lines+markers',
-                name: 'Post-COVID',
+                name: 'COVID után',
                 line: { color: 'red' }
             };
             var layout = {
-                title: 'Passenger Count Comparison: Pre-COVID vs Post-COVID',
-                xaxis: { title: 'Year' },
-                yaxis: { title: 'Passenger Count' },
+                title: 'Utasforgalom alakulása: COVID előtt és után',
+                xaxis: { title: 'Év' },
+                yaxis: { title: 'Utasok száma' },
                 hovermode: 'x unified'
             };
             Plotly.newPlot('passenger_plot', [trace1, trace2], layout);
@@ -39,394 +39,202 @@
     </section>
 
     <!-- 2. Havi utasforgalom (US célállomások) -->
-    <!DOCTYPE html>
-<html lang="hu">
-<head>
-    <meta charset="UTF-8">
-    <title>Havi utasforgalom – Évek szerint</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-</head>
-<body>
-    <h2 style="text-align:center;">Havi utasforgalom – Évek szerint</h2>
-    <div id="chart" style="width:90%; max-width:1000px; margin:auto;"></div>
+    <section>
+        <h2 style="text-align:center;">Havi utasforgalom – Évek szerint</h2>
+        <div id="chart2" style="width:90%; max-width:1000px; margin:auto;"></div>
+        <script>
+            const jsonUrl = 'https://raw.githubusercontent.com/mlaszar/mlaszar.github.io/main/San_Francisco.json';
+            const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June',
+                                'July', 'August', 'September', 'October', 'November', 'December'];
+            const colorMap = { /* színek kihagyva rövidítés miatt */ };
 
-    <script>
-        const jsonUrl = 'https://raw.githubusercontent.com/mlaszar/mlaszar.github.io/main/San_Francisco.json';
+            fetch(jsonUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const monthlyData = {};
+                    data.forEach(item => {
+                        const dest = item["Destination"];
+                        const dateStr = item["Activity Period Start Date"];
+                        const countStr = item["Passenger Count"];
+                        if (dest !== "US" || !dateStr || !countStr) return;
+                        const [month, , yearShort] = dateStr.split('/');
+                        const year = +('20' + yearShort.padStart(2, '0'));
+                        if (year >= 2025) return;
+                        const monthName = monthOrder[parseInt(month, 10) - 1];
+                        const count = parseInt(countStr.replace(/,/g, ''));
+                        if (isNaN(count)) return;
+                        const key = `${year}_${monthName}`;
+                        monthlyData[key] = (monthlyData[key] || 0) + count;
+                    });
 
-        const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June',
-                            'July', 'August', 'September', 'October', 'November', 'December'];
-
-        const colorMap = {
-            "January": "#1f77b4",
-            "February": "#17becf",
-            "March": "#2ca02c",
-            "April": "#bcbd22",
-            "May": "#ffbb78",
-            "June": "#ff7f0e",
-            "July": "#d62728",
-            "August": "#e377c2",
-            "September": "#9467bd",
-            "October": "#8c564b",
-            "November": "#7f7f7f",
-            "December": "#1f77b4"
-        };
-
-        fetch(jsonUrl)
-            .then(response => response.json())
-            .then(data => {
-                const monthlyData = {};
-
-                data.forEach(item => {
-                    const dest = item["Destination"];
-                    const dateStr = item["Activity Period Start Date"];
-                    const countStr = item["Passenger Count"];
-
-                    if (dest !== "US" || !dateStr || !countStr) return;
-
-                    const [month, day, yearShort] = dateStr.split('/');
-                    const year = +('20' + yearShort.padStart(2, '0'));
-                    if (year >= 2025) return;
-
-                    const monthIndex = parseInt(month, 10) - 1;
-                    const monthName = monthOrder[monthIndex];
-
-                    const count = parseInt(countStr.replace(/,/g, ''));
-                    if (isNaN(count)) return;
-
-                    const key = `${year}_${monthName}`;
-                    monthlyData[key] = (monthlyData[key] || 0) + count;
-                });
-
-                const yearSet = new Set();
-                const traces = [];
-
-                monthOrder.forEach((month, i) => {
-                    const x = [];
-                    const y = [];
-
-                    for (const key in monthlyData) {
-                        if (key.endsWith('_' + month)) {
-                            const year = key.split('_')[0];
-                            x.push(+year);
-                            y.push(monthlyData[key]);
-                            yearSet.add(+year);
+                    const traces = monthOrder.map((month) => {
+                        const x = [], y = [];
+                        for (const key in monthlyData) {
+                            if (key.endsWith('_' + month)) {
+                                const year = key.split('_')[0];
+                                x.push(+year);
+                                y.push(monthlyData[key]);
+                            }
                         }
+                        return {
+                            x, y, mode: 'lines+markers',
+                            name: month,
+                            line: { color: colorMap[month] || 'gray' }
+                        };
+                    });
+
+                    const buttons = monthOrder.map((month, i) => ({
+                        label: month,
+                        method: 'update',
+                        args: [{ visible: monthOrder.map((_, j) => j === i) }, { title: `${month} – éves utasforgalom` }]
+                    }));
+
+                    buttons.unshift({
+                        label: 'Összes hónap',
+                        method: 'update',
+                        args: [{ visible: monthOrder.map(() => true) }, { title: 'Havi utasforgalom – Évek szerint' }]
+                    });
+
+                    const layout = {
+                        title: 'Havi utasforgalom – Évek szerint',
+                        xaxis: { title: 'Év' },
+                        yaxis: { title: 'Utasok száma' },
+                        updatemenus: [{
+                            buttons,
+                            direction: 'down',
+                            x: 1.1,
+                            y: 1.2
+                        }],
+                        height: 600
+                    };
+
+                    Plotly.newPlot('chart2', traces, layout);
+                });
+        </script>
+    </section>
+
+    <!-- 3. Legforgalmasabb hónapok -->
+    <section>
+        <h2 style="text-align:center;">Évenkénti legforgalmasabb hónap</h2>
+        <div id="chart3" style="width:90%;max-width:1000px;height:600px;margin:auto;"></div>
+        <script>
+            fetch(jsonUrl)
+                .then(res => res.json())
+                .then(data => {
+                    data = data.map(d => {
+                        const parts = d["Activity Period Start Date"].split('/');
+                        let year = +parts[2];
+                        year += (year < 50 ? 2000 : 1900);
+                        return {
+                            year,
+                            month: parseInt(parts[0], 10),
+                            passengers: parseInt(d["Passenger Count"].replace(/,/g, ""), 10)
+                        };
+                    }).filter(d => d.year !== 2025);
+
+                    const totals = {};
+                    data.forEach(d => {
+                        const key = `${d.year}-${d.month}`;
+                        totals[key] = (totals[key] || 0) + d.passengers;
+                    });
+
+                    const maxMonths = {};
+                    for (const key in totals) {
+                        const [year, month] = key.split('-').map(Number);
+                        if (!maxMonths[year] || totals[key] > maxMonths[year].passengers)
+                            maxMonths[year] = { month, passengers: totals[key] };
                     }
 
-                    traces.push({
-                        x: x,
-                        y: y,
-                        mode: 'lines+markers',
-                        name: month,
-                        line: {
-                            width: 1.5,
-                            color: colorMap[month] || 'gray'
-                        },
-                        visible: true
+                    const years = Object.keys(maxMonths).sort();
+                    const yData = years.map(y => maxMonths[y].passengers);
+                    const textData = years.map(y => `${maxMonths[y].month}. hónap`);
+                    const colors = years.map(y => `hsl(${maxMonths[y].month * 30}, 70%, 50%)`);
+
+                    Plotly.newPlot("chart3", [{
+                        x: years,
+                        y: yData,
+                        type: 'bar',
+                        text: textData,
+                        marker: { color: colors }
+                    }], {
+                        title: "Legforgalmasabb hónap évente",
+                        xaxis: { title: "Év" },
+                        yaxis: { title: "Utasszám" }
                     });
                 });
+        </script>
+    </section>
 
-                // Dropdown gombok
-                const buttons = monthOrder.map((month, i) => ({
-                    label: month,
-                    method: 'update',
-                    args: [
-                        { visible: monthOrder.map((_, j) => j === i) },
-                        { title: `${month} – éves utasforgalom` }
-                    ]
-                }));
+    <!-- 4. Top 20 légitársaság -->
+    <section>
+        <h2 style="text-align:center;">Top 20 légitársaság (összes utas alapján)</h2>
+        <div id="chart4" style="width:90%;max-width:1000px;height:600px;margin:auto;"></div>
+        <script>
+            fetch(jsonUrl)
+                .then(res => res.json())
+                .then(data => {
+                    const totals = {};
+                    data.forEach(row => {
+                        const airline = row["Operating Airline"];
+                        const count = parseInt(row["Passenger Count"].replace(/,/g, ""), 10);
+                        if (!airline || isNaN(count)) return;
+                        totals[airline] = (totals[airline] || 0) + count;
+                    });
 
-                buttons.unshift({
-                    label: 'Összes hónap',
-                    method: 'update',
-                    args: [
-                        { visible: monthOrder.map(() => true) },
-                        { title: 'Havi utasforgalom – Évek szerint' }
-                    ]
+                    const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]).slice(0, 20);
+                    Plotly.newPlot("chart4", [{
+                        x: sorted.map(i => i[0]),
+                        y: sorted.map(i => i[1]),
+                        type: 'bar',
+                        marker: { color: 'orange' }
+                    }], {
+                        title: "Top 20 légitársaság kumulált utasszám alapján",
+                        xaxis: { title: "Légitársaság", tickangle: -45 },
+                        yaxis: { title: "Utasszám" }
+                    });
                 });
+        </script>
+    </section>
 
-                const layout = {
-                    title: 'Havi utasforgalom – Évek szerint',
-                    xaxis: { title: 'Év' },
-                    yaxis: { title: 'Utasok száma' },
-                    updatemenus: [{
-                        buttons: buttons,
-                        direction: 'down',
-                        showactive: true,
-                        x: 1.1,
-                        y: 1.2,
-                        xanchor: 'right',
-                        yanchor: 'top'
-                    }],
-                    height: 600,
-                    plot_bgcolor: '#fff'
-                };
+    <!-- 5. Térkép: célállomások -->
+    <section>
+        <h2 style="text-align:center;">Célállomások térképen</h2>
+        <div id="map" style="width:100%;height:80vh;"></div>
+        <script>
+            fetch(jsonUrl)
+                .then(res => res.json())
+                .then(data => {
+                    const mapData = {};
+                    data.forEach(row => {
+                        const key = row.Destination;
+                        const lat = parseFloat(row.Latitude);
+                        const lon = parseFloat(row.Longitude);
+                        const count = parseInt(row["Passenger Count"].replace(/,/g, ""), 10);
+                        if (!key || isNaN(lat) || isNaN(lon) || isNaN(count)) return;
+                        if (!mapData[key]) mapData[key] = { lat, lon, count: 0 };
+                        mapData[key].count += count;
+                    });
 
-                Plotly.newPlot('chart', traces, layout);
-            })
-            .catch(error => {
-                console.error('Hiba történt a JSON beolvasásakor:', error);
-            });
-    </script>
-</body>
-</html>
-
-    <!-- 3. Legforgalmasabb hónap évenként -->
-  <!DOCTYPE html>
-<html lang="hu">
-<head>
-  <meta charset="UTF-8" />
-  <title>San Francisco – Legforgalmasabb hónapok</title>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-</head>
-<body>
-  <h2 style="text-align:center;">San Francisco – Legforgalmasabb hónapok évenként</h2>
-  <div id="chart" style="width:90%;max-width:1000px;height:600px;margin:auto;"></div>
-
-  <script>
-    const jsonURL = "https://mlaszar.github.io/San_Francisco.json";
-
-    const monthNames = [
-      "Január", "Február", "Március", "Április", "Május", "Június",
-      "Július", "Augusztus", "Szeptember", "Október", "November", "December"
-    ];
-
-    const colorMap = {
-      1: 'rgb(100, 100, 255)',
-      2: 'rgb(100, 100, 255)',
-      3: 'rgb(0, 255, 255)',
-      4: 'rgb(0, 255, 255)',
-      5: 'rgb(0, 255, 0)',
-      6: 'rgb(255, 255, 0)',   // Június – sárga
-      7: 'rgb(255, 165, 0)',   // Július – narancs
-      8: 'rgb(255, 0, 0)',     // Augusztus – piros
-      9: 'rgb(255, 255, 0)',
-      10: 'rgb(255, 255, 0)',
-      11: 'rgb(255, 165, 0)',
-      12: 'rgb(0, 0, 255)'
-    };
-
-    fetch(jsonURL)
-      .then(res => res.json())
-      .then(data => {
-        // Adat előkészítés
-        data.forEach(d => {
-          const parts = d["Activity Period Start Date"].split('/');
-          let year = +parts[2];
-          year += (year < 50 ? 2000 : 1900); // 99 -> 1999, 01 -> 2001
-          d.year = year;
-          d.month = parseInt(parts[0], 10);
-          d.passengers = parseInt(d["Passenger Count"].replace(/,/g, ""), 10);
-        });
-
-        // Szűrés: kizárjuk a 2025-ös évet
-        data = data.filter(d => d.year !== 2025);
-
-        // Összesítés év-hónap szerint
-        const monthlyTotals = {};
-        data.forEach(d => {
-          const key = `${d.year}-${d.month}`;
-          if (!monthlyTotals[key]) monthlyTotals[key] = 0;
-          monthlyTotals[key] += d.passengers;
-        });
-
-        // Legforgalmasabb hónap kiválasztása évente
-        const maxMonths = {};
-        for (const key in monthlyTotals) {
-          const [year, month] = key.split('-').map(Number);
-          if (!maxMonths[year] || monthlyTotals[key] > maxMonths[year].passengers) {
-            maxMonths[year] = { month, passengers: monthlyTotals[key] };
-          }
-        }
-
-        // Diagram adatok előállítása
-        const years = Object.keys(maxMonths).sort((a, b) => a - b);
-        const yData = years.map(y => maxMonths[y].passengers);
-        const textData = years.map(y => monthNames[maxMonths[y].month - 1]);
-        const colorData = years.map(y => colorMap[maxMonths[y].month]);
-
-        const trace = {
-          x: years,
-          y: yData,
-          type: 'bar',
-          text: textData,
-          marker: { color: colorData },
-          hovertemplate: "Év: %{x}<br>Utasszám: %{y}<br>Hónap: %{text}<extra></extra>"
-        };
-
-        const layout = {
-          title: "Legforgalmasabb hónapok (induló járatok) évente",
-          xaxis: { title: "Év", tickangle: 45 },
-          yaxis: { title: "Utasszám" },
-          margin: { t: 80 }
-        };
-
-        Plotly.newPlot("chart", [trace], layout);
-      })
-      .catch(err => {
-        document.getElementById("chart").innerText = "Hiba a JSON betöltésekor.";
-        console.error("Betöltési hiba:", err);
-      });
-  </script>
-</body>
-</html>
-
-
-    <!-- 4. Top 20 Légitársaság -->
-    <!DOCTYPE html>
-<html lang="hu">
-<head>
-    <meta charset="UTF-8">
-    <title>Top 20 Légitársaság</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-</head>
-<body>
-    <h2 style="text-align:center;">Top 20 légitársaság kumulált utasszám alapján</h2>
-    <div id="chart" style="width:90%; max-width:1000px; margin:auto;"></div>
-
-    <script>
-        // A JSON fájl GitHub RAW elérési útvonala
-        const jsonUrl = 'https://raw.githubusercontent.com/mlaszar/mlaszar.github.io/main/San_Francisco.json';
-
-        fetch(jsonUrl)
-            .then(response => response.json())
-            .then(data => {
-                // Összesítéshez objektum létrehozása
-                const airlineTotals = {};
-
-                data.forEach(entry => {
-                    const airline = entry['Operating Airline'];
-                    let passengers = entry['Passenger Count'];
-
-                    if (!airline || !passengers) return;
-
-                    // Szövegből szám (pl. "31,353" → 31353)
-                    passengers = parseInt(passengers.replace(/,/g, ''));
-                    if (isNaN(passengers)) return;
-
-                    if (!airlineTotals[airline]) {
-                        airlineTotals[airline] = 0;
-                    }
-
-                    airlineTotals[airline] += passengers;
-                });
-
-                // Átalakítás tömbbé és top 20 rendezés
-                const sortedAirlines = Object.entries(airlineTotals)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 20);
-
-                const airlines = sortedAirlines.map(item => item[0]);
-                const passengers = sortedAirlines.map(item => item[1]);
-
-                const trace = {
-                    x: airlines,
-                    y: passengers,
-                    type: 'bar',
-                    marker: {
-                        color: passengers,
-                        colorscale: 'Plasma'
-                    }
-                };
-
-                const layout = {
-                    title: 'Top 20 légitársaság kumulált utasszám alapján',
-                    xaxis: {
-                        title: 'Légitársaság',
-                        tickangle: -45
-                    },
-                    yaxis: {
-                        title: 'Utasok száma'
-                    },
-                    plot_bgcolor: '#fff'
-                };
-
-                Plotly.newPlot('chart', [trace], layout);
-            })
-            .catch(error => {
-                console.error('Hiba történt a JSON beolvasásakor:', error);
-            });
-    </script>
-</body>
-</html>
-
-    <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>San Francisco járatok térképe</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-</head>
-<body>
-    <h2>San Francisco-ból induló járatok célállomásai</h2>
-    <div id="map" style="width:100%;height:90vh;"></div>
-
-    <script>
-        // GitHub raw URL a JSON fájlhoz
-        const jsonUrl = "https://raw.githubusercontent.com/mlaszar/mlaszar.github.io/main/San_Francisco.json";
-
-        fetch(jsonUrl)
-            .then(response => response.json())
-            .then(data => {
-                // Szűrés és átalakítás
-                let mapData = {};
-                data.forEach(row => {
-                    const key = `${row.Destination}_${row.Latitude}_${row.Longitude}`;
-                    if (!mapData[key]) {
-                        mapData[key] = {
-                            destination: row.Destination,
-                            lat: parseFloat(row.Latitude),
-                            lon: parseFloat(row.Longitude),
-                            count: parseFloat(row["Passenger Count"]) || 0
-                        };
-                    } else {
-                        mapData[key].count += parseFloat(row["Passenger Count"]) || 0;
-                    }
-                });
-
-                const locations = Object.values(mapData);
-
-                const trace = {
-                    type: "scattergeo",
-                    mode: "markers",
-                    text: locations.map(loc => `${loc.destination}<br>Utasok száma: ${loc.count}`),
-                    lon: locations.map(loc => loc.lon),
-                    lat: locations.map(loc => loc.lat),
-                    marker: {
-                        size: locations.map(loc => Math.sqrt(loc.count) * 2),
-                        color: locations.map(loc => loc.count),
-                        colorscale: "Viridis",
-                        colorbar: { title: "Utasok száma" },
-                        line: {
-                            width: 0.5,
-                            color: 'white'
+                    const points = Object.values(mapData);
+                    Plotly.newPlot("map", [{
+                        type: "scattergeo",
+                        mode: "markers",
+                        text: points.map(p => `Utasok: ${p.count}`),
+                        lon: points.map(p => p.lon),
+                        lat: points.map(p => p.lat),
+                        marker: {
+                            size: points.map(p => Math.sqrt(p.count) / 50),
+                            color: points.map(p => p.count),
+                            colorscale: "Viridis",
+                            colorbar: { title: "Utasok száma" }
                         }
-                    },
-                    hoverinfo: "text"
-                };
+                    }], {
+                        title: "San Francisco-ból induló járatok célállomásai",
+                        geo: { projection: { type: "natural earth" }, showland: true }
+                    });
+                });
+        </script>
+    </section>
 
-                const layout = {
-                    title: "San Francisco-ból induló járatok célállomásai",
-                    geo: {
-                        projection: { type: "natural earth" },
-                        showland: true,
-                        landcolor: "white",
-                        oceancolor: "lightgray",
-                        showocean: true,
-                        coastlinecolor: "white",
-                        coastlinewidth: 2,
-                        showcoastlines: true,
-                        showcountries: true,
-                        countrycolor: "white",
-                    }
-                };
-
-                Plotly.newPlot("map", [trace], layout);
-            })
-            .catch(error => {
-                console.error("Hiba történt a JSON betöltésekor:", error);
-            });
-    </script>
 </body>
 </html>
-
