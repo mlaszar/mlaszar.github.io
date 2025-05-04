@@ -241,54 +241,79 @@
     </section>
 
     <!-- 4. Top 20 Légitársaság -->
-    <section>
-        <h2 style="text-align:center;">Top 20 légitársaság kumulált utasszám alapján</h2>
-        <div id="chart_top_airlines" style="width:90%; max-width:1000px; margin:auto;"></div>
-        <script>
-            const jsonUrl = 'https://raw.githubusercontent.com/mlaszar/mlaszar.github.io/main/San_Francisco.json';
-            fetch(jsonUrl)
-              .then(response => response.json())
-              .then(data => {
+    <!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Top 20 Légitársaság</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h2 style="text-align:center;">Top 20 légitársaság kumulált utasszám alapján</h2>
+    <div id="chart" style="width:90%; max-width:1000px; margin:auto;"></div>
+
+    <script>
+        // A JSON fájl GitHub RAW elérési útvonala
+        const jsonUrl = 'https://raw.githubusercontent.com/mlaszar/mlaszar.github.io/main/San_Francisco.json';
+
+        fetch(jsonUrl)
+            .then(response => response.json())
+            .then(data => {
+                // Összesítéshez objektum létrehozása
                 const airlineTotals = {};
+
                 data.forEach(entry => {
-                  const airline = entry['Operating Airline'];
-                  let passengers = entry['Passenger Count'];
-                  if (!airline || !passengers) return;
-                  passengers = parseInt(passengers.replace(/,/g, ''));
-                  if (isNaN(passengers)) return;
-                  if (!airlineTotals[airline]) airlineTotals[airline] = 0;
-                  airlineTotals[airline] += passengers;
+                    const airline = entry['Operating Airline'];
+                    let passengers = entry['Passenger Count'];
+
+                    if (!airline || !passengers) return;
+
+                    // Szövegből szám (pl. "31,353" → 31353)
+                    passengers = parseInt(passengers.replace(/,/g, ''));
+                    if (isNaN(passengers)) return;
+
+                    if (!airlineTotals[airline]) {
+                        airlineTotals[airline] = 0;
+                    }
+
+                    airlineTotals[airline] += passengers;
                 });
 
+                // Átalakítás tömbbé és top 20 rendezés
                 const sortedAirlines = Object.entries(airlineTotals)
-                  .sort((a, b) => b[1] - a[1])
-                  .slice(0, 20);
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 20);
 
                 const airlines = sortedAirlines.map(item => item[0]);
                 const passengers = sortedAirlines.map(item => item[1]);
 
                 const trace = {
-                  x: airlines,
-                  y: passengers,
-                  type: 'bar',
-                  marker: {
-                    color: passengers,
-                    colorscale: 'Plasma'
-                  }
+                    x: airlines,
+                    y: passengers,
+                    type: 'bar',
+                    marker: {
+                        color: passengers,
+                        colorscale: 'Plasma'
+                    }
                 };
 
                 const layout = {
-                  title: 'Top 20 légitársaság kumulált utasszám alapján',
-                  xaxis: { title: 'Légitársaság', tickangle: -45 },
-                  yaxis: { title: 'Utasok száma' },
-                  plot_bgcolor: '#fff'
+                    title: 'Top 20 légitársaság kumulált utasszám alapján',
+                    xaxis: {
+                        title: 'Légitársaság',
+                        tickangle: -45
+                    },
+                    yaxis: {
+                        title: 'Utasok száma'
+                    },
+                    plot_bgcolor: '#fff'
                 };
 
-                Plotly.newPlot('chart_top_airlines', [trace], layout);
-              })
-              .catch(error => console.error('Hiba történt a JSON beolvasásakor:', error));
-        </script>
-    </section>
-
+                Plotly.newPlot('chart', [trace], layout);
+            })
+            .catch(error => {
+                console.error('Hiba történt a JSON beolvasásakor:', error);
+            });
+    </script>
 </body>
 </html>
