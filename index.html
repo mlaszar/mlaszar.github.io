@@ -349,3 +349,84 @@
     </script>
 </body>
 </html>
+
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>San Francisco járatok térképe</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h2>San Francisco-ból induló járatok célállomásai</h2>
+    <div id="map" style="width:100%;height:90vh;"></div>
+
+    <script>
+        // GitHub raw URL a JSON fájlhoz
+        const jsonUrl = "https://raw.githubusercontent.com/mlaszar/mlaszar.github.io/main/San_Francisco.json";
+
+        fetch(jsonUrl)
+            .then(response => response.json())
+            .then(data => {
+                // Szűrés és átalakítás
+                let mapData = {};
+                data.forEach(row => {
+                    const key = `${row.Destination}_${row.Latitude}_${row.Longitude}`;
+                    if (!mapData[key]) {
+                        mapData[key] = {
+                            destination: row.Destination,
+                            lat: parseFloat(row.Latitude),
+                            lon: parseFloat(row.Longitude),
+                            count: parseFloat(row["Passenger Count"]) || 0
+                        };
+                    } else {
+                        mapData[key].count += parseFloat(row["Passenger Count"]) || 0;
+                    }
+                });
+
+                const locations = Object.values(mapData);
+
+                const trace = {
+                    type: "scattergeo",
+                    mode: "markers",
+                    text: locations.map(loc => `${loc.destination}<br>Utasok száma: ${loc.count}`),
+                    lon: locations.map(loc => loc.lon),
+                    lat: locations.map(loc => loc.lat),
+                    marker: {
+                        size: locations.map(loc => Math.sqrt(loc.count) * 2),
+                        color: locations.map(loc => loc.count),
+                        colorscale: "Viridis",
+                        colorbar: { title: "Utasok száma" },
+                        line: {
+                            width: 0.5,
+                            color: 'white'
+                        }
+                    },
+                    hoverinfo: "text"
+                };
+
+                const layout = {
+                    title: "San Francisco-ból induló járatok célállomásai",
+                    geo: {
+                        projection: { type: "natural earth" },
+                        showland: true,
+                        landcolor: "white",
+                        oceancolor: "lightgray",
+                        showocean: true,
+                        coastlinecolor: "white",
+                        coastlinewidth: 2,
+                        showcoastlines: true,
+                        showcountries: true,
+                        countrycolor: "white",
+                    }
+                };
+
+                Plotly.newPlot("map", [trace], layout);
+            })
+            .catch(error => {
+                console.error("Hiba történt a JSON betöltésekor:", error);
+            });
+    </script>
+</body>
+</html>
+
