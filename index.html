@@ -257,99 +257,76 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-  <meta charset="UTF-8" />
-  <title>San Francisco – Legforgalmasabb hónapok trendje</title>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <meta charset="UTF-8">
+    <title>Top 20 Légitársaság</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-  <h2>Legforgalmasabb hónapok évenként (San Francisco)</h2>
-  <div id="chart" style="width:90%;max-width:1000px;height:600px;margin:auto;"></div>
+    <h2 style="text-align:center;">Top 20 légitársaság kumulált utasszám alapján</h2>
+    <div id="chart" style="width:90%; max-width:1000px; margin:auto;"></div>
 
-  <script>
-    const url = "https://raw.githubusercontent.com/mlaszar/mlaszar.github.io/main/San_Francisco.json";
+    <script>
+        // A JSON fájl GitHub RAW elérési útvonala
+        const jsonUrl = 'https://raw.githubusercontent.com/mlaszar/mlaszar.github.io/main/San_Francisco.json';
 
-    const monthNames = [
-      "Január", "Február", "Március", "Április", "Május", "Június",
-      "Július", "Augusztus", "Szeptember", "Október", "November", "December"
-    ];
+        fetch(jsonUrl)
+            .then(response => response.json())
+            .then(data => {
+                // Összesítéshez objektum létrehozása
+                const airlineTotals = {};
 
-    const colorMap = {
-      1: 'rgb(100,100,255)',
-      2: 'rgb(100,100,255)',
-      3: 'rgb(0,255,255)',
-      4: 'rgb(0,255,255)',
-      5: 'rgb(0,255,0)',
-      6: 'rgb(255,255,0)',     // Június - sárga
-      7: 'rgb(255,165,0)',     // Július - narancs
-      8: 'rgb(255,0,0)',       // Augusztus - piros
-      9: 'rgb(255,255,0)',
-      10: 'rgb(255,255,0)',
-      11: 'rgb(255,165,0)',
-      12: 'rgb(0,0,255)'
-    };
+                data.forEach(entry => {
+                    const airline = entry['Operating Airline'];
+                    let passengers = entry['Passenger Count'];
 
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
-        // Dátum feldolgozás, utasszám átalakítás
-        data.forEach(d => {
-          const parts = d["Activity Period Start Date"].split('/');
-          d.year = 2000 + parseInt(parts[2], 10);
-          if (d.year > new Date().getFullYear()) d.year -= 100;  // 1999 korrekció
-          d.month = parseInt(parts[0], 10);
-          d.passengers = parseInt(d["Passenger Count"].replace(/,/g, ''), 10);
-        });
+                    if (!airline || !passengers) return;
 
-        // Szűrés 2025 kizárásával
-        data = data.filter(d => d.year !== 2025);
+                    // Szövegből szám (pl. "31,353" → 31353)
+                    passengers = parseInt(passengers.replace(/,/g, ''));
+                    if (isNaN(passengers)) return;
 
-        // Összegzés: év-hónap szinten utasszámok
-        const totals = {};
-        data.forEach(d => {
-          const key = `${d.year}-${d.month}`;
-          if (!totals[key]) totals[key] = 0;
-          totals[key] += d.passengers;
-        });
+                    if (!airlineTotals[airline]) {
+                        airlineTotals[airline] = 0;
+                    }
 
-        // Legforgalmasabb hónap keresése évenként
-        const maxPerYear = {};
-        for (const key in totals) {
-          const [year, month] = key.split('-').map(Number);
-          if (!maxPerYear[year] || totals[key] > maxPerYear[year].passengers) {
-            maxPerYear[year] = { month, passengers: totals[key] };
-          }
-        }
+                    airlineTotals[airline] += passengers;
+                });
 
-        // Chart adatok
-        const years = Object.keys(maxPerYear).sort((a, b) => a - b);
-        const passengerCounts = years.map(y => maxPerYear[y].passengers);
-        const labels = years.map(y => monthNames[maxPerYear[y].month - 1]);
-        const colors = years.map(y => colorMap[maxPerYear[y].month]);
+                // Átalakítás tömbbé és top 20 rendezés
+                const sortedAirlines = Object.entries(airlineTotals)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 20);
 
-        // Diagram rajzolás
-        const trace = {
-          x: years.map(String),
-          y: passengerCounts,
-          text: labels,
-          type: 'bar',
-          marker: {
-            color: colors
-          },
-          hovertemplate: "Év: %{x}<br>Utasszám: %{y}<br>Hónap: %{text}<extra></extra>"
-        };
+                const airlines = sortedAirlines.map(item => item[0]);
+                const passengers = sortedAirlines.map(item => item[1]);
 
-        const layout = {
-          title: 'Legforgalmasabb hónap évenként (induló járatok)',
-          xaxis: { title: 'Év' },
-          yaxis: { title: 'Utasszám' },
-        };
+                const trace = {
+                    x: airlines,
+                    y: passengers,
+                    type: 'bar',
+                    marker: {
+                        color: passengers,
+                        colorscale: 'Plasma'
+                    }
+                };
 
-        Plotly.newPlot('chart', [trace], layout);
-      })
-      .catch(error => {
-        document.getElementById('chart').innerText = 'Hiba a JSON betöltésekor!';
-        console.error("Hiba:", error);
-      });
-  </script>
+                const layout = {
+                    title: 'Top 20 légitársaság kumulált utasszám alapján',
+                    xaxis: {
+                        title: 'Légitársaság',
+                        tickangle: -45
+                    },
+                    yaxis: {
+                        title: 'Utasok száma'
+                    },
+                    plot_bgcolor: '#fff'
+                };
+
+                Plotly.newPlot('chart', [trace], layout);
+            })
+            .catch(error => {
+                console.error('Hiba történt a JSON beolvasásakor:', error);
+            });
+    </script>
 </body>
 </html>
